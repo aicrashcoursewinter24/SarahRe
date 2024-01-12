@@ -215,7 +215,26 @@ output:
 --Each value ranges from 0 to 1, where 1 indicates high similarity, and 0 indicates dissimilarity.
 and the code is showing that similar words that can be used in the same sentence have similar matrix values
 
+#bert embeddings
+model = SentenceTransformer('all-MiniLM-L6-v2') 
+encoded_input = tokenizer("time flies like an arrow, fruit flies like a banana")
+print(tokenizer.convert_ids_to_tokens(encoded_input['input_ids']))
+print(encoded_input['input_ids'])
+#both flies use the same token when considered individually like this. 
 
+['[CLS]', 'time', 'flies', 'like', 'an', 'arrow', ',', 'fruit', 'flies', 'like', 'a', 'banana', '[SEP]']
+[101, 1159, 10498, 1176, 1126, 11473, 117, 5735, 10498, 1176, 170, 21806, 102]
+
+#doing the same for another sentence then contrasting.
+print("time flies like a monkey eating a banana but monkeys do like bananas.")
+encoded_input = tokenizer("time flies like a monkey eating a banana but monkeys do like bananas.")
+print(tokenizer.convert_ids_to_tokens(encoded_input['input_ids']))
+print(encoded_input['input_ids'])
+
+time flies like a monkey eating a banana but monkeys do like bananas.
+['[CLS]', 'time', 'flies', 'like', 'a', 'monkey', 'eating', 'a', 'banana', 'but', 'monkeys', 'do', 'like', 'banana', '##s', '.', '[SEP]']
+[101, 1159, 10498, 1176, 170, 16019, 5497, 170, 21806, 1133, 22413, 1202, 1176, 21806, 1116, 119, 102]
+the sentenace has different meanings for the word flies and like.
 
 
 
