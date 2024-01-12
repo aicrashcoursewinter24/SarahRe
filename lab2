@@ -1,0 +1,223 @@
+ **Today, we'll play with turning text into numeric vectors (the process of "vectorization"), which first requires splitting up the a long string into something closer to a list of words (or characters).
+This latter process is the process of "tokenization": each word/sub-word/character (the atomic unit of text) is called a "token".
+Start by installing the "datasets" python package, giving you access to some helpful utilities in downloading public datasets from HuggingFace and elsewhere.**
+
+! pip install datasets.
+
+Collecting datasets
+  Downloading datasets-2.16.1-py3-none-any.whl (507 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 507.1/507.1 kB 5.5 MB/s eta 0:00:00
+Requirement already satisfied: filelock in /usr/local/lib/python3.10/dist-packages (from datasets) (3.13.1)
+Requirement already satisfied: numpy>=1.17 in /usr/local/lib/python3.10/dist-packages (from datasets) (1.23.5)
+Requirement already satisfied: pyarrow>=8.0.0 in /usr/local/lib/python3.10/dist-packages (from datasets) (10.0.1)
+Requirement already satisfied: pyarrow-hotfix in /usr/local/lib/python3.10/dist-packages (from datasets) (0.6)
+Collecting dill<0.3.8,>=0.3.0 (from datasets)
+  Downloading dill-0.3.7-py3-none-any.whl (115 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 115.3/115.3 kB 8.0 MB/s eta 0:00:00
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from datasets) (1.5.3)
+Requirement already satisfied: requests>=2.19.0 in /usr/local/lib/python3.10/dist-packages (from datasets) (2.31.0)
+Requirement already satisfied: tqdm>=4.62.1 in /usr/local/lib/python3.10/dist-packages (from datasets) (4.66.1)
+Requirement already satisfied: xxhash in /usr/local/lib/python3.10/dist-packages (from datasets) (3.4.1)
+Collecting multiprocess (from datasets)
+  Downloading multiprocess-0.70.15-py310-none-any.whl (134 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.8/134.8 kB 10.3 MB/s eta 0:00:00
+Requirement already satisfied: fsspec[http]<=2023.10.0,>=2023.1.0 in /usr/local/lib/python3.10/dist-packages (from datasets) (2023.6.0)
+Requirement already satisfied: aiohttp in /usr/local/lib/python3.10/dist-packages (from datasets) (3.9.1)
+Requirement already satisfied: huggingface-hub>=0.19.4 in /usr/local/lib/python3.10/dist-packages (from datasets) (0.20.2)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from datasets) (23.2)
+Requirement already satisfied: pyyaml>=5.1 in /usr/local/lib/python3.10/dist-packages (from datasets) (6.0.1)
+Requirement already satisfied: attrs>=17.3.0 in /usr/local/lib/python3.10/dist-packages (from aiohttp->datasets) (23.2.0)
+Requirement already satisfied: multidict<7.0,>=4.5 in /usr/local/lib/python3.10/dist-packages (from aiohttp->datasets) (6.0.4)
+Requirement already satisfied: yarl<2.0,>=1.0 in /usr/local/lib/python3.10/dist-packages (from aiohttp->datasets) (1.9.4)
+Requirement already satisfied: frozenlist>=1.1.1 in /usr/local/lib/python3.10/dist-packages (from aiohttp->datasets) (1.4.1)
+Requirement already satisfied: aiosignal>=1.1.2 in /usr/local/lib/python3.10/dist-packages (from aiohttp->datasets) (1.3.1)
+Requirement already satisfied: async-timeout<5.0,>=4.0 in /usr/local/lib/python3.10/dist-packages (from aiohttp->datasets) (4.0.3)
+Requirement already satisfied: typing-extensions>=3.7.4.3 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.19.4->datasets) (4.5.0)
+Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests>=2.19.0->datasets) (3.3.2)
+Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests>=2.19.0->datasets) (3.6)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests>=2.19.0->datasets) (2.0.7)
+Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests>=2.19.0->datasets) (2023.11.17)
+Requirement already satisfied: python-dateutil>=2.8.1 in /usr/local/lib/python3.10/dist-packages (from pandas->datasets) (2.8.2)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas->datasets) (2023.3.post1)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil>=2.8.1->pandas->datasets) (1.16.0)
+Installing collected packages: dill, multiprocess, datasets
+Successfully installed datasets-2.16.1 dill-0.3.7 multiprocess-0.70.15
+
+---** the code above is for installing the datasets library in Python using a package manager, possibly pip. The output you provided shows the process of downloading and installing the necessary dependencies** 
+
+**There are pre-built tokenizer models, which have both code and mappings between tokens and token *ids* - integers which will be feature columns for the text
+We will first use the BERT model (the original "transformer" from the "[Attention is All You Need](https://arxiv.org/abs/1706.03762)" paper), in a form which knows how to differentiate between lower and uppercase characters (some tokenizers lowercase everything first).  It's called "bert-base-uncased".**
+
+from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+
+Note in the output above, you should see a comment about the "HF_TOKEN" secret.  There is also a link to HuggingFace, where you can generate your HF Token (see note below about the word "token"). To the left part of the Colab screen, there is a "key" icon: you can store your HF_TOKEN as a secret there.  Name it HF_TOKEN and give it "notebook access" via the toggle.
+/usr/local/lib/python3.10/dist-packages/huggingface_hub/utils/_token.py:88: UserWarning: 
+The secret `HF_TOKEN` does not exist in your Colab secrets.
+To authenticate with the Hugging Face Hub, create a token in your settings tab (https://huggingface.co/settings/tokens), set it as secret in your Google Colab and restart your session.
+You will be able to reuse this secret in all of your notebooks.
+Please note that authentication is recommended but still optional to access public models or datasets.
+  warnings.warn(
+tokenizer_config.json:   0%|          | 0.00/29.0 [00:00<?, ?B/s]
+config.json:   0%|          | 0.00/570 [00:00<?, ?B/s]
+vocab.txt:   0%|          | 0.00/213k [00:00<?, ?B/s]
+tokenizer.json:   0%|          | 0.00/436k [00:00<?, ?B/s]
+
+-- 
+--a tokenizer to encode a text string. The provided code snippet is likely using the tokenizer object to encode the text "Do not meddle in the affairs of wizards". However, the specific tokenizer and its configuration are not included in the snippet.
+
+ note on "token": there are now two completely unrelated uses of the word "token" in this lab:
+* "token": a unit of text like a word or character (or even multi-word phrase) used in text preprocessing
+* "HF_TOKEN": a password-like thing for getting access to HuggingFace
+# prompt: write python code to print the textual tokens in sequential order from a string, using the above tokenizer
+
+print(tokenizer.convert_ids_to_tokens(encoded))
+
+--a tokenizer to encode a text string. The provided code snippet is likely using the tokenizer object to encode the text "Do not meddle in the affairs of wizards". However, the specific tokenizer and its configuration are not included in the snippet.
+print(encoded)
+encoded_input = tokenizer("Do not meddle in the affairs of wizards, for they are subtle and quick to anger.")
+print(encoded_input.keys())
+print(encoded_input['input_ids'])
+! pip install sentence-transformers
+
+Collecting sentence-transformers
+  Downloading sentence-transformers-2.2.2.tar.gz (85 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 86.0/86.0 kB 2.1 MB/s eta 0:00:00
+  Preparing metadata (setup.py) ... done
+Requirement already satisfied: transformers<5.0.0,>=4.6.0 in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (4.35.2)
+Requirement already satisfied: tqdm in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (4.66.1)
+Requirement already satisfied: torch>=1.6.0 in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (2.1.0+cu121)
+Requirement already satisfied: torchvision in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (0.16.0+cu121)
+Requirement already satisfied: numpy in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (1.23.5)
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (1.2.2)
+Requirement already satisfied: scipy in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (1.11.4)
+Requirement already satisfied: nltk in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (3.8.1)
+Collecting sentencepiece (from sentence-transformers)
+  Downloading sentencepiece-0.1.99-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 34.5 MB/s eta 0:00:00
+Requirement already satisfied: huggingface-hub>=0.4.0 in /usr/local/lib/python3.10/dist-packages (from sentence-transformers) (0.20.2)
+Requirement already satisfied: filelock in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.4.0->sentence-transformers) (3.13.1)
+Requirement already satisfied: fsspec>=2023.5.0 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.4.0->sentence-transformers) (2023.6.0)
+Requirement already satisfied: requests in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.4.0->sentence-transformers) (2.31.0)
+Requirement already satisfied: pyyaml>=5.1 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.4.0->sentence-transformers) (6.0.1)
+Requirement already satisfied: typing-extensions>=3.7.4.3 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.4.0->sentence-transformers) (4.5.0)
+Requirement already satisfied: packaging>=20.9 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub>=0.4.0->sentence-transformers) (23.2)
+Requirement already satisfied: sympy in /usr/local/lib/python3.10/dist-packages (from torch>=1.6.0->sentence-transformers) (1.12)
+Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from torch>=1.6.0->sentence-transformers) (3.2.1)
+Requirement already satisfied: jinja2 in /usr/local/lib/python3.10/dist-packages (from torch>=1.6.0->sentence-transformers) (3.1.2)
+Requirement already satisfied: triton==2.1.0 in /usr/local/lib/python3.10/dist-packages (from torch>=1.6.0->sentence-transformers) (2.1.0)
+Requirement already satisfied: regex!=2019.12.17 in /usr/local/lib/python3.10/dist-packages (from transformers<5.0.0,>=4.6.0->sentence-transformers) (2023.6.3)
+Requirement already satisfied: tokenizers<0.19,>=0.14 in /usr/local/lib/python3.10/dist-packages (from transformers<5.0.0,>=4.6.0->sentence-transformers) (0.15.0)
+Requirement already satisfied: safetensors>=0.3.1 in /usr/local/lib/python3.10/dist-packages (from transformers<5.0.0,>=4.6.0->sentence-transformers) (0.4.1)
+Requirement already satisfied: click in /usr/local/lib/python3.10/dist-packages (from nltk->sentence-transformers) (8.1.7)
+Requirement already satisfied: joblib in /usr/local/lib/python3.10/dist-packages (from nltk->sentence-transformers) (1.3.2)
+Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn->sentence-transformers) (3.2.0)
+Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in /usr/local/lib/python3.10/dist-packages (from torchvision->sentence-transformers) (9.4.0)
+Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.10/dist-packages (from jinja2->torch>=1.6.0->sentence-transformers) (2.1.3)
+Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests->huggingface-hub>=0.4.0->sentence-transformers) (3.3.2)
+Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests->huggingface-hub>=0.4.0->sentence-transformers) (3.6)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests->huggingface-hub>=0.4.0->sentence-transformers) (2.0.7)
+Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests->huggingface-hub>=0.4.0->sentence-transformers) (2023.11.17)
+Requirement already satisfied: mpmath>=0.19 in /usr/local/lib/python3.10/dist-packages (from sympy->torch>=1.6.0->sentence-transformers) (1.3.0)
+Building wheels for collected packages: sentence-transformers
+  Building wheel for sentence-transformers (setup.py) ... done
+  Created wheel for sentence-transformers: filename=sentence_transformers-2.2.2-py3-none-any.whl size=125923 sha256=395b9c169c35e4196407b51e5138ea79ceae8e891815bf8790da55510b3c4bef
+  Stored in directory: /root/.cache/pip/wheels/62/f2/10/1e606fd5f02395388f74e7462910fe851042f97238cbbd902f
+Successfully built sentence-transformers
+Installing collected packages: sentencepiece, sentence-transformers
+Successfully installed sentence-transformers-2.2.2 sentencepiece-0.1.99
+
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer('all-MiniLM-L6-v2')
+sentences = ['This framework generates embeddings for each input sentence',
+    'Sentences are passed as a list of string.',
+    'The quick brown fox jumps over the lazy dog.']
+embeddings = model.encode(sentences)
+
+#Print the embeddings
+for sentence, embedding in zip(sentences, embeddings):
+    print("Sentence:", sentence)
+    print("Embedding:", embedding)
+    print("")
+output is too big to copy and will cause glitch**
+
+At this point, go ahead and explore with the vector representation (the "embedding") of any sentence (or string of text, more generally), looking at the tokenized form, the list of token_id integers, or compute cosine similarities between the embeddings:
+
+words = ["quick", "fast", "red", "blue", "ferari"]
+single_word_embeddings = model.encode(words)
+
+for word, embed in zip(words, single_word_embeddings):
+  print("word: ", word)
+  print("embed: ", embed[0:10])
+  print("")
+
+word:  quick
+embed:  [-0.01363505  0.02511056 -0.03966426 -0.00121545  0.03869091 -0.04272134
+  0.03643535  0.00567384  0.00246003 -0.04250647]
+
+word:  fast
+embed:  [-0.01659232  0.06137965 -0.01092987  0.02365591 -0.0138125  -0.01203378
+ -0.00972914 -0.05885596 -0.01261965 -0.0577055 ]
+
+word:  red
+embed:  [-0.02509159  0.00884627 -0.10083688  0.01320896  0.01490394  0.02841406
+  0.15962426  0.01331032  0.03514304 -0.04301136]
+
+word:  blue
+embed:  [-0.06580827  0.0203764  -0.05504949 -0.00301157  0.01343209  0.02449333
+  0.20061415 -0.00983796  0.04382765 -0.01033155]
+
+word:  ferari
+embed:  [ 0.00451991  0.08644823 -0.12962112  0.05201175  0.01814397 -0.07465909
+  0.07894592  0.05689763 -0.00582556 -0.09301732]
+--Each word is represented as a vector in a high-dimensional space. The numbers in the vectors represent the coordinates of the words in this space.
+# prompt: python code to compute the matrix of cosines between all of the pairs of words in the list above.
+
+from sklearn.metrics.pairwise import cosine_similarity
+# Compute the cosine similarity between all pairs of words
+word_embeddings = model.encode(words)
+word_similarities = cosine_similarity(word_embeddings)
+# Print the word similarities
+print(word_similarities)
+[[1.0000001  0.6515874  0.3388258  0.33914232 0.28320336]
+ [0.6515874  1.         0.32009655 0.30601805 0.26345903]
+ [0.3388258  0.32009655 1.         0.72944736 0.26313198]
+ [0.33914232 0.30601805 0.72944736 1.         0.22827557]
+ [0.28320336 0.26345903 0.26313198 0.22827557 0.99999976]]
+--words with similar meanings or contexts often have similar vectors. For example, the embeddings for "quick" and "fast" are somewhat close, suggesting these words might be used in similar contexts. Similarly, the embeddings for "red" and "blue" have certain similarities.
+
+# prompt: python code for computing cosine similarity between sentence vector embeddings from the above tokenizer and model
+
+from scipy.spatial.distance import cosine
+for sentence in sentences:
+    print("Sentence:", sentence)
+print("")
+print("Cosine similarity between the first two sentences:", cosine(embeddings[0], embeddings[1]))
+print("Cosine similarity between the second and third sentences:", cosine(embeddings[1], embeddings[2]))
+print("Cosine similarity between the first and third sentences:", cosine(embeddings[0], embeddings[2]))
+
+#using the above code to answer a question
+words = ['flies', 'insect', 'bird', 'meters', 'road', 'distance']
+from sklearn.metrics.pairwise import cosine_similarity
+# Compute the cosine similarity between all pairs of words
+word_embeddings = model.encode(words)
+word_similarities = cosine_similarity(word_embeddings)
+# Print the word similarities
+print(word_similarities)
+
+output:
+[[1.         0.61485314 0.4749211  0.15404426 0.20274456 0.20979017]
+ [0.61485314 1.0000005  0.5042044  0.17323928 0.23560993 0.23201719]
+ [0.4749211  0.5042044  0.9999999  0.18733987 0.32781324 0.23440048]
+ [0.15404426 0.17323928 0.18733987 1.0000002  0.25428015 0.54522943]
+ [0.20274456 0.23560993 0.32781324 0.25428015 1.0000001  0.4114368 ]
+ [0.20979017 0.23201719 0.23440048 0.54522943 0.4114368  1.        ]]
+--Each value ranges from 0 to 1, where 1 indicates high similarity, and 0 indicates dissimilarity.
+and the code is showing that similar words that can be used in the same sentence have similar matrix values
+
+
+
+
+
+
+
